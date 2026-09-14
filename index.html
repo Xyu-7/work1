@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="一个类似文档表格的本地数据表应用，支持查找、动态列、单元格编辑和 IndexedDB 本地存储。">
+  <title>数据表</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#sheetRegion">跳到表格内容</a>
+
+  <header class="docs-topbar">
+    <div class="topbar-inner">
+      <div class="doc-title-group">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="21" height="21">
+            <path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"></path>
+            <path d="M14 3.5V8h4M8 12h7M8 15.5h7M8 19h4"></path>
+          </svg>
+        </span>
+        <div class="doc-title-text">
+          <h1>数据表</h1>
+          <span>本地文档</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="button button-ghost" id="importButton" type="button">
+          导入 CSV
+        </button>
+        <button class="button button-primary" id="exportButton" type="button">
+          导出 CSV
+        </button>
+        <input id="importFileInput" type="file" accept=".csv,text/csv" hidden>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section class="sheet-panel" aria-labelledby="sheetTitle">
+      <h2 class="sr-only" id="sheetTitle">数据表</h2>
+
+      <div class="docs-toolbar">
+        <div class="toolbar-left">
+          <div class="search-box">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
+              <path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"></path>
+            </svg>
+            <input id="searchInput" type="search" placeholder="查找…" autocomplete="off" aria-label="查找单元格内容">
+            <button class="search-clear" id="clearSearchButton" type="button" aria-label="清除查找" hidden>×</button>
+          </div>
+          <span class="search-summary" id="searchSummary" hidden></span>
+        </div>
+
+        <div class="toolbar-right">
+          <span class="table-shape" id="tableShapeBadge">0 行 × 0 列</span>
+          <p class="storage-state is-loading" id="storageState">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="storageText">正在连接本地数据库…</span>
+          </p>
+          <button class="tool-button" id="addColumnButton" type="button">
+            <span aria-hidden="true">+</span>
+            新增列
+          </button>
+        </div>
+      </div>
+
+      <div class="formula-bar">
+        <span class="cell-address" id="cellAddress">A1</span>
+        <span class="fx-label" aria-hidden="true">fx</span>
+        <input class="formula-input" id="formulaInput" type="text" readonly value="" aria-label="当前单元格内容">
+      </div>
+
+      <div class="sheet-scroll" id="sheetRegion">
+        <table class="sheet-table">
+          <caption class="sr-only">可编辑的数据表</caption>
+          <colgroup id="tableCols"></colgroup>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="sheet-footer">
+        <button class="add-row-button" id="addRowButton" type="button">
+          <span aria-hidden="true">+</span>
+          新增行
+        </button>
+        <span class="footer-hint">点击单元格直接编辑，移开焦点自动保存</span>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="columnModal" hidden>
+    <section class="modal-card modal-card-small" role="dialog" aria-modal="true" aria-labelledby="columnModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-eyebrow">表格列</p>
+          <h2 id="columnModalTitle">新增列</h2>
+        </div>
+        <button class="icon-button" id="closeColumnModalButton" type="button" aria-label="关闭">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+            <path d="M6 6l12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form id="columnForm" novalidate>
+        <label class="form-field">
+          <span>列名 <em>*</em></span>
+          <input id="columnNameInput" name="columnName" type="text" maxlength="40" required placeholder="请输入列名">
+          <small class="field-error" id="columnNameError"></small>
+        </label>
+
+        <div class="modal-actions">
+          <button class="button button-ghost" id="cancelColumnButton" type="button">取消</button>
+          <button class="button button-primary" id="saveColumnButton" type="submit">添加列</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="confirmModal" hidden>
+    <section class="modal-card modal-card-small" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-eyebrow">确认操作</p>
+          <h2 id="confirmTitle">确认删除</h2>
+        </div>
+        <button class="icon-button" id="confirmCloseButton" type="button" aria-label="关闭">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+            <path d="M6 6l12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <p class="confirm-message" id="confirmMessage"></p>
+
+      <div class="modal-actions">
+        <button class="button button-ghost" id="confirmCancelButton" type="button">取消</button>
+        <button class="button button-danger" id="confirmOkButton" type="button">确认删除</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <noscript>
+    <div class="noscript-message">这个应用需要启用 JavaScript 才能使用。</div>
+  </noscript>
+
+  <script src="assets/js/db.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</body>
+</html>

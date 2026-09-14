@@ -1,0 +1,25 @@
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 本地日志和临时文件
+*.log
+*.tmp
+tmp/
+temp/
+
+# 依赖和构建产物
+node_modules/
+dist/
+build/
+
+# 浏览器导出的数据
+登记表-*.csv
+表格-*.csv
